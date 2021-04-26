@@ -15,13 +15,15 @@
  */
 package com.google.ar.sceneform.samples.gltf;
 
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.ImageFormat;
+import android.graphics.Rect;
+import android.graphics.YuvImage;
 import android.media.Image;
 import android.net.Uri;
 import android.os.Build;
@@ -35,6 +37,7 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
+
 import com.google.android.filament.gltfio.Animator;
 import com.google.android.filament.gltfio.FilamentAsset;
 import com.google.ar.core.Anchor;
@@ -52,12 +55,15 @@ import com.google.ar.sceneform.rendering.Renderable;
 import com.google.ar.sceneform.rendering.ViewRenderable;
 import com.google.ar.sceneform.ux.ArFragment;
 import com.google.ar.sceneform.ux.TransformableNode;
-import java.lang.ref.WeakReference;
 
+import java.io.ByteArrayOutputStream;
+import java.lang.ref.WeakReference;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+
+import static java.util.concurrent.TimeUnit.SECONDS;
 
 /**
  * This is an example activity that uses the Sceneform UX package to make common AR tasks easier.
@@ -237,52 +243,32 @@ public class GltfActivity extends AppCompatActivity {
     }
     return true;
   }
-    private Bitmap convertImageToBitmap(Image image) throws OutOfMemoryError {
-
-        Image.Plane[] planes = image.getPlanes();
-        ByteBuffer buffer = ByteBuffer.allocate(1553040);
-
-        int pixelStride = planes[0].getPixelStride();
-        int rowStride = planes[0].getRowStride();
-        int rowPadding = rowStride - pixelStride * image.getWidth();
-
-        Bitmap bitmap = Bitmap.createBitmap(image.getWidth() + rowPadding / pixelStride, image.getHeight(), Bitmap.Config.ARGB_8888);
-        bitmap.copyPixelsFromBuffer(buffer);
-        image.close();
-
-        return bitmap;
-    }
-    private Bitmap decodeToBitmap(final Image img) {
-        Image.Plane[] planes = img.getPlanes();
-        if (planes[0].getBuffer() == null) {
-            return null;
-        }
-
-        int width = img.getWidth();
-        int height = img.getHeight();
-        Log.d(TAG, "FUCKNIGGA decodeToBitmap: width"+img.getWidth()+"Height"+img.getHeight());
-        int pixelStride = planes[0].getPixelStride();
-        int rowStride = planes[0].getRowStride();
-        int rowPadding = rowStride - pixelStride * width;
-        ByteBuffer bfer=ByteBuffer.allocate(width*height*4);
-        Bitmap bitmap = Bitmap.createBitmap(
-                width + rowPadding / pixelStride, height,
-                Bitmap.Config.ARGB_8888);
-        bfer=null;
-        bitmap.copyPixelsFromBuffer(planes[0].getBuffer());
-        img.close();
-
-        return Bitmap.createBitmap(bitmap, 0, 0, width, height, null, true);
-    }
-
 
   public void tester() throws NotYetAvailableException {
       Frame frame = arFragment.getArSceneView().getArFrame();
       Image img = frame.acquireCameraImage();
-      Bitmap btm=decodeToBitmap(img);
-      Intent in=new Intent(this, trydraw.class);
-      in.putExtra("btm",btm);
-      startActivity(in);
+      //ByteBuffer buffer = img.getPlanes()[0].getBuffer();
+      //byte[] bytes = new byte[buffer.capacity()];
+      //buffer.get(bytes);
+      //Bitmap bitmapImage = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, null);
+      //bitmapImage=DrawBitmap.bm;
+      ByteBuffer ib = ByteBuffer.allocate(img.getHeight() * img.getWidth() * 2);
+      ByteBuffer y = img.getPlanes()[0].getBuffer();
+      ByteBuffer cr = img.getPlanes()[1].getBuffer();
+      ByteBuffer cb = img.getPlanes()[2].getBuffer();
+      ib.put(y);
+      ib.put(cb);
+      ib.put(cr);
+      YuvImage yuvImage = new YuvImage(ib.array(),
+              ImageFormat.NV21, img.getWidth(), img.getHeight(), null);
+      ByteArrayOutputStream out = new ByteArrayOutputStream();
+      yuvImage.compressToJpeg(new Rect(0, 0,
+              img.getWidth(), img.getHeight()), 50, out);
+      byte[] imageBytes = out.toByteArray();
+      Bitmap bm = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
+      DrawBitmap.bm=bm;
+      Log.d(TAG, "tester: "+bm.getWidth()+bm.getHeight());
+      Intent intent=new Intent(this,trydraw.class);
+      startActivity(intent);
   }
-
 }
