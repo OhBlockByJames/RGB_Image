@@ -22,6 +22,7 @@ import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.ImageFormat;
+import android.graphics.Matrix;
 import android.graphics.Rect;
 import android.graphics.YuvImage;
 import android.media.Image;
@@ -243,15 +244,37 @@ public class GltfActivity extends AppCompatActivity {
     }
     return true;
   }
+    public Bitmap convertYuvImageToRgb(YuvImage yuvImage, int width, int height, int downSample){
+        //downSample通常是1-4之間 壓縮圖檔
+        try{
+            Bitmap rgbImage;
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            yuvImage.compressToJpeg(new Rect(0, 0, width, height), 0, out);
+            byte[] imageBytes = out.toByteArray();
+
+            BitmapFactory.Options opt;
+            opt = new BitmapFactory.Options();
+
+            opt.inSampleSize = downSample;
+
+            // get image and rotate it so (0,0) is in the bottom left
+            Bitmap tmpImage;
+            Matrix matrix = new Matrix();
+            matrix.postRotate(90); // to rotate the camera images so (0,0) is in the bottom left
+            tmpImage = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length, opt);
+            rgbImage=Bitmap.createBitmap(tmpImage , 0, 0, tmpImage.getWidth(), tmpImage.getHeight(), matrix, true);
+
+            return rgbImage;}
+        catch (IllegalArgumentException e){
+            Log.d("Bitmap","illegal");
+            return null;
+
+        }
+    }
 
   public void tester() throws NotYetAvailableException {
       Frame frame = arFragment.getArSceneView().getArFrame();
       Image img = frame.acquireCameraImage();
-      //ByteBuffer buffer = img.getPlanes()[0].getBuffer();
-      //byte[] bytes = new byte[buffer.capacity()];
-      //buffer.get(bytes);
-      //Bitmap bitmapImage = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, null);
-      //bitmapImage=DrawBitmap.bm;
       ByteBuffer ib = ByteBuffer.allocate(img.getHeight() * img.getWidth() * 2);
       ByteBuffer y = img.getPlanes()[0].getBuffer();
       ByteBuffer cr = img.getPlanes()[1].getBuffer();
@@ -265,8 +288,13 @@ public class GltfActivity extends AppCompatActivity {
       yuvImage.compressToJpeg(new Rect(0, 0,
               img.getWidth(), img.getHeight()), 50, out);
       byte[] imageBytes = out.toByteArray();
+      Log.d(TAG, "tester: "+out.getClass());
+      //byte*matrix
       Bitmap bm = BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length);
-      DrawBitmap.bm=bm;
+      //New RGB image
+      Bitmap bm2=convertYuvImageToRgb(yuvImage,img.getWidth(),img.getHeight(),1);
+      //
+      DrawBitmap.bm=bm2;
       Log.d(TAG, "tester: "+bm.getWidth()+bm.getHeight());
       Intent intent=new Intent(this,trydraw.class);
       startActivity(intent);

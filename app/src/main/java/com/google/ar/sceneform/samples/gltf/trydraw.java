@@ -17,9 +17,6 @@ public class trydraw extends AppCompatActivity {
         setContentView(R.layout.trydraw);
         customCanvas=new myView(this,null);
         setContentView(customCanvas);
-        //Intent intent=getIntent();
-        //Bitmap btm=intent.getExtras().getParcelable("bitmap");
-
     }
 
     public void clearCanvas(View v) {

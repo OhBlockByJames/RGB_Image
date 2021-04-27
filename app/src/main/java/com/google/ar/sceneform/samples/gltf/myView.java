@@ -17,6 +17,7 @@ public class myView extends View {
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         canvas.drawBitmap(DrawBitmap.bm,0,0,null);
+        //Turn and resize bitmap.
     }
     public void clearCanvas() {
 
